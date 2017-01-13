@@ -1,0 +1,14 @@
+{
+  "name": "cashboxparty",
+  "version": "0.0.1",
+  "description": "Tracklist for cashboxparty.",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "backpack"
+  },
+  "author": "Kai Hao",
+  "license": "MIT",
+  "devDependencies": {
+    "backpack-core": "^0.0.3"
+  }
+}
