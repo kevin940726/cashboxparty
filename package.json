@@ -4,11 +4,19 @@
   "description": "Tracklist for cashboxparty.",
   "main": "src/index.js",
   "scripts": {
-    "dev": "backpack"
+    "dev": "backpack",
+    "build": "backpack build"
   },
   "author": "Kai Hao",
   "license": "MIT",
   "devDependencies": {
-    "backpack-core": "^0.0.3"
+    "backpack-core": "^0.0.3",
+    "standard": "^8.6.0"
+  },
+  "dependencies": {
+    "cheerio": "^0.22.0",
+    "es6-promise-pool": "^2.4.4",
+    "firebase-admin": "^4.0.4",
+    "isomorphic-fetch": "^2.2.1"
   }
 }
