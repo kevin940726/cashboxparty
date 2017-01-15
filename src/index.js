@@ -1,27 +1,8 @@
 import cheerio from 'cheerio'
 import fetch from 'isomorphic-fetch'
 import PromisePool from 'es6-promise-pool'
-import firebase from 'firebase-admin'
-import serviceAccountKey from './serviceAccountKey.json'
-
-const LANGS = [
-  { '1': '國語' },
-  { '2': '台語' },
-  { '3': '粵語' },
-  { '4': '英語' },
-  { '5': '客語' },
-  { '6': '韓語' },
-  { '7': '兒歌' },
-  { '8': '日語' },
-  { '9': '義大利' }
-]
-
-firebase.initializeApp({
-  credential: firebase.credential.cert(serviceAccountKey),
-  databaseURL: 'https://cashboxparty-80b96.firebaseio.com/'
-})
-
-const ref = firebase.database().ref('cashboxparty')
+import ref from './connect'
+import LANGS from './langCode'
 
 const searchParams = params => Object.keys(params).map(key => (
   encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
@@ -108,15 +89,15 @@ const getSongsList = async function (langCode = '1', page = 1) {
 
 const saveSongsOfLang = async function (langCode = '1') {
   const metaData = await getMetaData(langCode)
-  const metaRef = ref.child('metaData')
-  metaRef.push().set(metaData)
+  const metaRef = ref.child('metaData').child(metaData.langCode)
+  metaRef.set(metaData)
 
   const songsRef = ref.child('songs')
 
   const saveSongsToRef = async function (page) {
     const songs = await getSongsList(langCode, page)
     for (let song of songs) {
-      songsRef.push().set(song)
+      songsRef.child(song.id).set(song)
     }
   }
 
@@ -128,9 +109,11 @@ const saveSongsOfLang = async function (langCode = '1') {
   const pool = new PromisePool(generatePromises(), 10)
 
   return pool.start()
-    .then(() => console.log(`Lang ${LANGS[+langCode - 1][langCode]} done fetching!`))
+    .then(() => console.log(`Lang ${LANGS.get(langCode)} done fetching!`))
     .catch(console.error)
 }
 
-LANGS.map(lang => Object.keys(lang)[0])
-  .forEach(saveSongsOfLang)
+for (let { langCode } of LANGS) {
+  saveSongsOfLang(langCode)
+}
+// require('./checkNewSongs')
