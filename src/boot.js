@@ -4,12 +4,7 @@ import PromisePool from 'es6-promise-pool';
 import NyanProgress from 'nyan-progress';
 import ref from './connect';
 import LANGS from './langCode';
-
-const searchParams = params =>
-  Object
-    .keys(params)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-    .join('&');
+import { searchParams } from './utils';
 
 async function getMetaData(langCode) {
   let response;

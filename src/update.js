@@ -3,6 +3,7 @@ import NyanProgress from 'nyan-progress';
 import PromisePool from 'es6-promise-pool';
 import ref from './connect';
 import LANGS from './langCode';
+import { flattenArray } from './utils';
 
 const API_URI = 'http://mobileappv2plus.cashboxparty.com/WebService/SongService.asmx/SelectNewSongByLanguageTypeOrderByReleaseDate';
 
@@ -92,10 +93,7 @@ async function saveSongsToDb(data) {
   return null;
 }
 
-const flattenArray = arrayOfArray => [].concat(...arrayOfArray);
-
 Promise
   .all(langsList.map(getNewSongsOfLang))
   .then(flattenArray)
   .then(saveSongsToDb);
-// export default checkNewSongs
