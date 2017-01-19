@@ -1,45 +1,11 @@
-import fetch from 'isomorphic-fetch';
 import NyanProgress from 'nyan-progress';
 import PromisePool from 'es6-promise-pool';
 import ref from './connect';
 import LANGS from './langCode';
 import { flattenArray } from './utils';
-
-const API_URI = 'http://mobileappv2plus.cashboxparty.com/WebService/SongService.asmx/SelectNewSongByLanguageTypeOrderByReleaseDate';
+import { getNewSongsOfLang } from './api';
 
 const langsList = ['NTC', 'NST'];
-
-async function getNewSongsOfLang(lang) {
-  let response;
-  try {
-    response = await fetch(API_URI, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        Referer: 'http://mobileappv2plus.cashboxparty.com/Song/SongIndexV2.aspx',
-      },
-      body: `{languageType : '${lang}' }`,
-    });
-  } catch (err) {
-    if (err.code === 'ETIMEDOUT') {
-      return getNewSongsOfLang(lang); // retry if timeout
-    }
-    console.error(err);
-    return [];
-  }
-
-  // convert to json
-  response = await response.json();
-  if (response) {
-    // get the 'd' property
-    response = response.d;
-  }
-
-  // parse to json
-  const data = JSON.parse(response);
-
-  return data;
-}
 
 async function saveSongsToDb(data) {
   // get the latest date from the first item
@@ -93,6 +59,7 @@ async function saveSongsToDb(data) {
   return null;
 }
 
+// program entry point
 Promise
   .all(langsList.map(getNewSongsOfLang))
   .then(flattenArray)
