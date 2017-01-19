@@ -1,119 +1,136 @@
-import cheerio from 'cheerio'
-import fetch from 'isomorphic-fetch'
-import PromisePool from 'es6-promise-pool'
-import ref from './connect'
-import LANGS from './langCode'
+import cheerio from 'cheerio';
+import fetch from 'isomorphic-fetch';
+import PromisePool from 'es6-promise-pool';
+import NyanProgress from 'nyan-progress';
+import ref from './connect';
+import LANGS from './langCode';
 
-const searchParams = params => Object.keys(params).map(key => (
-  encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
-)).join('&')
+const searchParams = params =>
+  Object
+    .keys(params)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .join('&');
 
-const getMetaData = async function (langCode = '1') {
-  let response
+async function getMetaData(langCode) {
+  let response;
   try {
-    response = await fetch('http://www.cashboxparty.com/mysong/mysong_search_r.asp', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+    response = await fetch(
+      'http://www.cashboxparty.com/mysong/mysong_search_r.asp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: searchParams({
+          LangCode: langCode,
+          // if no langCode specified than fetch all
+          Chk_LangCode: langCode ? 1 : undefined,
+        }),
       },
-      body: searchParams({
-        LangCode: langCode,
-        Chk_LangCode: 1
-      })
-    })
+    );
   } catch (err) {
     if (err.code === 'ETIMEDOUT') {
-      return getMetaData(langCode) // retry
+      return getMetaData(langCode); // retry
     }
-    console.error(err)
-    return {}
+    console.error(err);
+    return {};
   }
-  const body = await response.text()
-  const $ = cheerio.load(body)
+  const body = await response.text();
+  const $ = cheerio.load(body);
 
   const meta = $('#form1 table:first-of-type tr:nth-of-type(2) td:first-of-type')
-    .clone()    // clone the element
-    .children() // select all the children
-    .remove()   // remove all the children
-    .end()  // again go back to selected element
-    .text() // get the meta text
-    .match(/\d+/g) // get the number
-
+    .clone()
+    .children()
+    .remove()
+    .end()
+    .text()
+    .match(/\d+/g);
+  // get the number
   return {
-    langCode,
-    total: parseInt(meta[0], 10), // first is total songs
-    pages: parseInt(meta[1], 10) // second is total pages
-  }
+    // // if no langCode specified than return langCode 'all'
+    langCode: langCode || 'all',
+    // first is total songs
+    total: parseInt(meta[(0)], 10),
+    // second is total pages
+    pages: parseInt(meta[(1)], 10),
+  };
 }
 
-const getSongsList = async function (langCode = '1', page = 1) {
-  let response
+async function getSongsList(page = 1) {
+  let response;
   try {
-    response = await fetch('http://www.cashboxparty.com/mysong/MySong_Search_R.asp', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+    response = await fetch(
+      'http://www.cashboxparty.com/mysong/MySong_Search_R.asp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: searchParams({ Page: page, Order_Num: 10 }),
       },
-      body: searchParams({
-        LangCode: langCode,
-        Chk_LangCode: 1,
-        Page: page,
-        Order_Num: 10
-      })
-    })
+    );
   } catch (err) {
     if (err.code === 'ETIMEDOUT') {
-      return getSongsList(langCode, page) // retry
+      return getSongsList(page); // retry
     }
-    console.error(langCode, page)
-    console.error(err)
-    return []
+    console.error(page);
+    console.error(err);
+    return [];
   }
-  const body = await response.text()
-  const $ = cheerio.load(body)
+  const body = await response.text();
+  const $ = cheerio.load(body);
 
   const songs = $('form table:nth-of-type(2) tr')
     .slice(1)
     .map((i, song) => $(song).find('td'))
-    .map((i, song) => ({
-      id: $(song).eq(0).text().trim(),
-      lang: $(song).eq(1).text().trim(),
-      langCode,
-      title: $(song).eq(2).text().trim(),
-      artist: $(song).eq(3).text().trim()
-    }))
+    .map(
+      (i, song) =>
+        ({
+          id: $(song).eq(0).text().trim(),
+          lang: $(song).eq(1).text().trim() || null,
+          langCode: LANGS.get($(song).eq(1).text().trim()) || null,
+          title: $(song).eq(2).text().trim(),
+          artist: $(song).eq(3).text().trim() || null,
+        }),
+    )
     .toArray()
+    .filter(song => song.id && song.title && song.langCode);
 
-  return songs
+  return songs;
 }
 
-const saveSongsOfLang = async function (langCode = '1') {
-  const metaData = await getMetaData(langCode)
-  const metaRef = ref.child('metaData').child(metaData.langCode)
-  metaRef.set(metaData)
+async function saveAllSongs() {
+  const metaData = await getMetaData();
+  const totalRef = ref.child('total');
+  const totalByLangRef = ref.child('total_by_lang');
 
-  const songsRef = ref.child('songs')
+  let total = 0;
+  const totalByLang = {};
 
-  const saveSongsToRef = async function (page) {
-    const songs = await getSongsList(langCode, page)
-    for (let song of songs) {
-      songsRef.child(song.id).set(song)
+  const songsRef = ref.child('songs');
+
+  async function saveSongsToRef(page) {
+    const songs = await getSongsList(page);
+    await Promise.all(songs.map((song) => {
+      total += 1;
+      totalByLang[song.langCode] = (totalByLang[song.langCode] || 0) + 1;
+      return songsRef.child(song.id).set(song);
+    }));
+  }
+
+  const progress = NyanProgress();
+  progress.start({ width: 50, total: metaData.pages, curr: 1 });
+
+  function* generatePromises() {
+    for (let page = 1; page <= metaData.pages; page += 1) {
+      progress.tick();
+      yield saveSongsToRef(page);
     }
   }
 
-  const generatePromises = function* () {
-    for (let page = 1; page <= metaData.pages; page++) {
-      yield saveSongsToRef(page)
-    }
-  }
-  const pool = new PromisePool(generatePromises(), 10)
+  const pool = new PromisePool(generatePromises(), 10);
+  await pool.start();
 
-  return pool.start()
-    .then(() => console.log(`Lang ${LANGS.get(langCode)} done fetching!`))
-    .catch(console.error)
+  await totalRef.set(total);
+  await totalByLangRef.set(totalByLang);
+
+  console.log(`Done fetching and saving ${total} songs!`);
 }
 
-for (let { langCode } of LANGS) {
-  saveSongsOfLang(langCode)
-}
-// require('./checkNewSongs')
+saveAllSongs();

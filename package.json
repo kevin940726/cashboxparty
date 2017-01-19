@@ -4,19 +4,25 @@
   "description": "Tracklist for cashboxparty.",
   "main": "src/index.js",
   "scripts": {
-    "dev": "backpack",
-    "build": "backpack build"
+    "build": "babel src --out-dir build --source-maps"
   },
   "author": "Kai Hao",
   "license": "MIT",
   "devDependencies": {
-    "backpack-core": "^0.0.3",
-    "standard": "^8.6.0"
+    "babel-cli": "^6.18.0",
+    "babel-preset-latest": "^6.16.0",
+    "babel-preset-stage-2": "^6.18.0",
+    "eslint": "^3.13.1",
+    "eslint-config-airbnb": "^14.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^3.0.2",
+    "eslint-plugin-react": "^6.9.0"
   },
   "dependencies": {
     "cheerio": "^0.22.0",
     "es6-promise-pool": "^2.4.4",
     "firebase-admin": "^4.0.4",
-    "isomorphic-fetch": "^2.2.1"
+    "isomorphic-fetch": "^2.2.1",
+    "nyan-progress": "^1.0.0"
   }
 }
