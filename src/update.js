@@ -1,6 +1,6 @@
 import NyanProgress from 'nyan-progress';
 import PromisePool from 'es6-promise-pool';
-import ref from './connect';
+import ref, { disconnect } from './connect';
 import LANGS from './langCode';
 import { flattenArray } from './utils';
 import { getNewSongsOfLang } from './api';
@@ -52,15 +52,18 @@ async function saveSongsToDb(data) {
 
     return pool
       .start()
-      .then(() => console.log(`Done fetching and saving ${newSongs.length} songs!`));
+      .then(() => `Done fetching and saving ${newSongs.length} songs!`);
   }
 
   console.log('There is no new song to write.');
-  return null;
+  return 'There is no new song to write.';
 }
 
-// program entry point
-Promise
-  .all(langsList.map(getNewSongsOfLang))
-  .then(flattenArray)
-  .then(saveSongsToDb);
+exports.handler = (event, context, callback) => (
+  Promise
+    .all(langsList.map(getNewSongsOfLang))
+    .then(flattenArray)
+    .then(saveSongsToDb)
+    .then(msg => callback(null, msg))
+    .then(disconnect())
+);
