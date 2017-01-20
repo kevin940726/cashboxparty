@@ -4,7 +4,7 @@
   "description": "Tracklist for cashboxparty.",
   "main": "src/index.js",
   "scripts": {
-    "babel": "babel src --out-dir build",
+    "update": "node -e 'require(`./build/update`).handler(null, null, (err, msg) => console.log(msg))'",
     "build": "gulp build",
     "deploy": "gulp deploy"
   },

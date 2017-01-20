@@ -1,7 +1,7 @@
 import firebase from 'firebase-admin';
 import serviceAccountKey from './serviceAccountKey.json';
 
-firebase.initializeApp({
+const app = firebase.initializeApp({
   credential: firebase.credential.cert(serviceAccountKey),
   databaseURL: 'https://cashboxparty-80b96.firebaseio.com/',
 });
@@ -12,6 +12,6 @@ const ref = database.ref('cashboxparty');
 
 // some weird hack happened here...,
 // I'm not sure why, will come back later.
-export const disconnect = database.app.delete.bind(database.app);
+export const disconnect = app.delete.bind(app);
 
 export default ref;

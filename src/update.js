@@ -50,13 +50,16 @@ async function saveSongsToDb(data) {
 
     const pool = new PromisePool(generatePromises(), 10);
 
-    return pool
-      .start()
-      .then(() => `Done fetching and saving ${newSongs.length} songs!`);
+    await pool.start();
+
+    console.log(`Done fetching and saving ${newSongs.length} songs!`);
+    console.log(newSongs);
+    return newSongs;
   }
 
   console.log('There is no new song to write.');
-  return 'There is no new song to write.';
+  console.log([]);
+  return [];
 }
 
 exports.handler = (event, context, callback) => (
@@ -65,5 +68,5 @@ exports.handler = (event, context, callback) => (
     .then(flattenArray)
     .then(saveSongsToDb)
     .then(msg => callback(null, msg))
-    .then(disconnect())
+    .then(() => disconnect())
 );
